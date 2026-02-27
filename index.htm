@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Frise Chronologique Gratuit | BlackCrow OS — Le Vaisseau-Monde</title>
+    <meta name="description" content="Créez des frises chronologiques interactives gratuitement. Widget HTML embarquable sur n'importe quel blog ou site. Outil BlackCrow OS — univers Le Vaisseau-Monde.">
+    <meta name="keywords" content="frise chronologique, timeline interactive, widget chronologie, générateur frise, outil blog gratuit, blackcrow, vaisseau-monde">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Générateur de Frise Chronologique Gratuit | BlackCrow OS">
+    <meta property="og:description" content="Créez des frises chronologiques interactives avec images, descriptions et liens. Widget HTML autonome à embarquer partout.">
+    <meta property="og:url" content="https://levaisseaumonde.github.io/BlackCrow/tools/timeline-generator.html">
+    <meta property="og:type" content="website">
+    <link rel="canonical" href="https://levaisseaumonde.github.io/BlackCrow/tools/timeline-generator.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #080808; --border: #1e1e1e; --border-mid: #2a2a2a; --border-hover: #444;
+            --text: #777; --text-mid: #999; --text-bright: #ccc; --accent: #e0e0e0;
+            --red: #c0392b; --green: #27ae60;
+        }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 1px, transparent 1px, transparent 2px); z-index: 9999; }
+        .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+
+        /* BREADCRUMB */
+        .breadcrumb { font-size: 10px; color: #333; margin-bottom: 28px; letter-spacing: 1px; }
+        .breadcrumb a { color: #333; text-decoration: none; transition: color 0.2s; }
+        .breadcrumb a:hover { color: #666; }
+        .breadcrumb span { margin: 0 6px; }
+
+        /* HEADER */
+        .header { border: 1px solid var(--border-mid); padding: 22px 24px; margin-bottom: 30px; position: relative; }
+        .header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #555, transparent); }
+        .header-tag { font-size: 10px; color: #444; margin-bottom: 6px; letter-spacing: 2px; }
+        .header h1 { color: var(--accent); font-size: 20px; font-weight: normal; margin-bottom: 6px; }
+        .header-sub { font-size: 11px; color: #444; line-height: 1.6; }
+        .save-ind { font-size: 9px; color: #2a2a2a; letter-spacing: 1px; margin-top: 8px; transition: color 0.5s; }
+        .save-ind.lit { color: var(--green); }
+
+        /* SECTIONS */
+        .section { margin-bottom: 20px; }
+        .sh { font-size: 10px; color: #444; letter-spacing: 2px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; }
+        .sh::before { content: '// '; color: #2a2a2a; }
+
+        /* FIELDS */
+        .field { margin-bottom: 16px; }
+        .field:last-child { margin-bottom: 0; }
+        .field label { display: block; font-size: 10px; color: #555; margin-bottom: 6px; letter-spacing: 1px; }
+        .field label::before { content: '> '; color: #333; }
+        .field input[type="text"], .field input[type="url"], .field select, .field textarea {
+            width: 100%; background: #060606; border: 1px solid var(--border);
+            padding: 10px 12px; color: var(--text-bright);
+            font-family: 'Courier New', monospace; font-size: 13px; transition: border-color 0.2s; outline: none;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus { border-color: #444; }
+        .field input::placeholder, .field textarea::placeholder { color: #2a2a2a; }
+        .field select option { background: #0a0a0a; }
+        .field textarea { resize: vertical; min-height: 55px; line-height: 1.5; }
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+        /* COLOR */
+        .cr { display: flex; gap: 8px; align-items: center; }
+        .cr input[type="color"] { width: 34px; height: 34px; border: 1px solid var(--border); background: none; cursor: pointer; padding: 2px; flex-shrink: 0; }
+        .cr input[type="text"] { flex: 1; }
+
+        /* CHECKBOX */
+        .chk { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+        .chk input[type="checkbox"] { appearance: none; width: 14px; height: 14px; border: 1px solid var(--border-mid); background: #060606; cursor: pointer; position: relative; flex-shrink: 0; }
+        .chk input[type="checkbox"]:checked::after { content: '✓'; position: absolute; top: -3px; left: 1px; color: var(--accent); font-size: 12px; }
+        .chk label { font-size: 11px; color: var(--text); cursor: pointer; }
+
+        /* EVENTS */
+        #ev-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .ecard { border: 1px solid var(--border); padding: 14px; transition: border-color 0.2s; }
+        .ecard:hover { border-color: var(--border-mid); }
+        .ecard-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 10px; color: #3a3a3a; letter-spacing: 1px; }
+        .enum { color: var(--red); }
+
+        /* BUTTONS */
+        .btn { background: none; border: 1px solid var(--border-mid); color: var(--text); font-family: 'Courier New', monospace; font-size: 11px; padding: 10px 16px; cursor: pointer; transition: all 0.15s; letter-spacing: 1px; }
+        .btn:hover { border-color: var(--border-hover); color: var(--text-bright); }
+        .btn-p { border-color: var(--accent); color: var(--accent); }
+        .btn-p:hover { background: var(--accent); color: #000; }
+        .btn-del { font-size: 10px; padding: 4px 8px; border-color: var(--border); color: var(--red); }
+        .btn-del:hover { border-color: var(--red); }
+        .btn-f { width: 100%; }
+        .btns { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-ghost { font-size: 10px; padding: 6px 12px; color: #444; }
+        .btn-ghost:hover { color: var(--red); border-color: var(--red); }
+
+        /* UPLOAD */
+        .uz { border: 1px dashed var(--border); padding: 10px 12px; text-align: center; font-size: 10px; color: #333; cursor: pointer; transition: all 0.2s; }
+        .uz:hover { border-color: #444; color: #555; }
+        .uz input { display: none; }
+        .ithumb { width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--border); margin-top: 8px; display: none; }
+        .ithumb.on { display: inline-block; }
+
+        /* STATUS */
+        .status { font-size: 10px; padding: 8px 12px; border: 1px solid var(--border); display: none; margin-top: 10px; }
+        .status.on { display: block; }
+        .status.ok { border-color: var(--green); color: var(--green); }
+        .status.err { border-color: var(--red); color: var(--red); }
+
+        /* PREVIEW */
+        #pv-wrap { border: 1px solid var(--border); margin-top: 20px; display: none; }
+        #pv-wrap.on { display: block; }
+        .pv-bar { padding: 8px 14px; font-size: 10px; color: #333; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+        #pv-frame { width: 100%; border: none; min-height: 400px; display: block; }
+
+        /* OUTPUT */
+        #out-wrap { margin-top: 20px; display: none; }
+        #out-wrap.on { display: block; }
+        .out-lbl { font-size: 10px; color: #444; letter-spacing: 2px; margin-bottom: 10px; }
+        .out-lbl::before { content: '// '; }
+        #code-out { width: 100%; background: #050505; border: 1px solid var(--border); padding: 14px; color: #444; font-family: 'Courier New', monospace; font-size: 10px; resize: vertical; min-height: 120px; outline: none; }
+
+        /* SEO */
+        .seo { margin-top: 48px; border-top: 1px solid var(--border); padding-top: 32px; }
+        .seo h2 { font-size: 14px; color: var(--text-mid); font-weight: normal; margin-bottom: 20px; letter-spacing: 1px; }
+        .seo h2::before { content: '// '; color: #333; }
+        .faq { margin-bottom: 20px; }
+        .faq h3 { font-size: 12px; color: var(--text-mid); font-weight: normal; margin-bottom: 6px; }
+        .faq h3::before { content: '> '; color: var(--red); }
+        .faq p { font-size: 11px; color: #444; line-height: 1.7; }
+        .faq p a { color: #555; }
+        .faq p a:hover { color: #888; }
+
+        /* FOOTER */
+        .footer { margin-top: 40px; border-top: 1px solid var(--border); padding-top: 24px; text-align: center; font-size: 10px; color: #2a2a2a; }
+        .fsig { margin-bottom: 12px; color: #333; letter-spacing: 2px; }
+        .flinks { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+        .flinks a { color: #333; text-decoration: none; transition: color 0.2s; }
+        .flinks a:hover { color: #666; }
+        .fcopy { color: #1e1e1e; }
+        .fcopy a { color: #2a2a2a; text-decoration: none; }
+        .fcopy a:hover { color: #444; }
+
+        @media (max-width: 560px) { .row2, .row3 { grid-template-columns: 1fr; } .btns { flex-direction: column; } }
+    </style>
+</head>
+<body>
+<div id="bc-navbar"></div>
+<script>
+  fetch('https://levaisseaumonde.github.io/BlackCrow/navbar.html')
+    .then(r => r.text())
+    .then(html => document.getElementById('bc-navbar').innerHTML = html);
+</script>
+<div class="scanlines"></div>
+<div class="wrap">
+
+    <nav class="breadcrumb" aria-label="Fil d'ariane">
+        <a href="https://levaisseaumonde.github.io/BlackCrow/">BlackCrow OS</a>
+        <span>/</span>
+        <a href="https://levaisseaumonde.github.io/BlackCrow/">Outils</a>
+        <span>/</span>
+        Frise Chronologique
+    </nav>
+
+    <header class="header">
+        <div class="header-tag">// BLACKCROW_OS / TOOLS / TIMELINE.BUILDER</div>
+        <h1>Générateur de Frise Chronologique Gratuit</h1>
+        <div class="header-sub">Créez des frises interactives avec images et liens — widget HTML autonome à embarquer sur votre blog ou site. Aucune inscription requise.</div>
+        <div class="save-ind" id="si">// SESSION_LOCALE : en attente</div>
+    </header>
+
+    <!-- CONFIG -->
+    <div class="section">
+        <div class="sh">CONFIGURATION_GÉNÉRALE</div>
+        <div class="field">
+            <label>TITRE_FRISE</label>
+            <input type="text" id="tl-title" placeholder="ex: Chronologie de la chute du Vaisseau-Monde" maxlength="120">
+        </div>
+        <div class="row2">
+            <div class="field">
+                <label>UNITÉ_DE_TEMPS</label>
+                <select id="tl-unit">
+                    <option value="an">Années</option>
+                    <option value="siècle">Siècles</option>
+                    <option value="jour">Jours</option>
+                    <option value="mois">Mois</option>
+                    <option value="ère">Ères</option>
+                    <option value="cycle">Cycles</option>
+                    <option value="">Personnalisé…</option>
+                </select>
+            </div>
+            <div class="field" id="ucf" style="display:none">
+                <label>UNITÉ_CUSTOM</label>
+                <input type="text" id="tl-uc" placeholder="ex: Epoch, Cycle Noir…">
+            </div>
+        </div>
+
+        <div class="sh" style="margin-top:16px;">COULEURS_FRISE</div>
+        <div class="row3">
+            <div class="field">
+                <label>FOND_WIDGET</label>
+                <div class="cr"><input type="color" id="c-bg" value="#0d0d0d"><input type="text" id="c-bg-h" value="#0d0d0d"></div>
+            </div>
+            <div class="field">
+                <label>ACCENT_FRISE</label>
+                <div class="cr"><input type="color" id="c-ln" value="#e05555"><input type="text" id="c-ln-h" value="#e05555"></div>
+            </div>
+            <div class="field">
+                <label>TEXTE_FRISE</label>
+                <div class="cr"><input type="color" id="c-tx" value="#aaaaaa"><input type="text" id="c-tx-h" value="#aaaaaa"></div>
+            </div>
+        </div>
+
+        <div class="sh" style="margin-top:4px;">COULEURS_CARTE_SURVOL</div>
+        <div class="row3">
+            <div class="field">
+                <label>FOND_CARTE</label>
+                <div class="cr"><input type="color" id="c-cbg" value="#1a1a1a"><input type="text" id="c-cbg-h" value="#1a1a1a"></div>
+            </div>
+            <div class="field">
+                <label>TEXTE_CARTE</label>
+                <div class="cr"><input type="color" id="c-ctx" value="#cccccc"><input type="text" id="c-ctx-h" value="#cccccc"></div>
+            </div>
+            <div class="field">
+                <label>BORDURE_CARTE</label>
+                <div class="cr"><input type="color" id="c-cbr" value="#e05555"><input type="text" id="c-cbr-h" value="#e05555"></div>
+            </div>
+        </div>
+
+        <div class="sh" style="margin-top:4px;">TYPOGRAPHIE</div>
+        <div class="row2">
+            <div class="field">
+                <label>POLICE</label>
+                <select id="tl-font">
+                    <option value="'Courier New',Courier,monospace">Courier New (défaut)</option>
+                    <option value="'Georgia',serif">Georgia</option>
+                    <option value="'Arial',sans-serif">Arial</option>
+                    <option value="'Trebuchet MS',sans-serif">Trebuchet MS</option>
+                    <option value="'Palatino',serif">Palatino</option>
+                    <option value="'Impact',sans-serif">Impact</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>TAILLE_TITRE_FRISE (px)</label>
+                <input type="text" id="tl-fsize-title" value="13" placeholder="13">
+            </div>
+        </div>
+        <div class="row3">
+            <div class="field">
+                <label>TAILLE_DATE (px)</label>
+                <input type="text" id="tl-fsize-date" value="9" placeholder="9">
+            </div>
+            <div class="field">
+                <label>TAILLE_LÉGENDE (px)</label>
+                <input type="text" id="tl-fsize-label" value="10" placeholder="10">
+            </div>
+            <div class="field">
+                <label>TAILLE_DESCRIPTION (px)</label>
+                <input type="text" id="tl-fsize-desc" value="10" placeholder="10">
+            </div>
+        </div>
+
+        <div class="sh" style="margin-top:4px;">OPTIONS</div>
+        <div class="row2">
+            <div class="field">
+                <label>LARGEUR_WIDGET</label>
+                <input type="text" id="tl-w" value="100%" placeholder="100% ou 800px">
+            </div>
+            <div class="field">
+                <div class="chk">
+                    <input type="checkbox" id="brand-vm" checked>
+                    <label for="brand-vm">Lien vaisseau-monde.fr</label>
+                </div>
+                <div class="chk">
+                    <input type="checkbox" id="brand-bc" checked>
+                    <label for="brand-bc">Lien BlackCrow OS</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="section">
+        <div class="sh">POINTS_DE_LA_FRISE</div>
+        <div id="ev-list"><div style="font-size:11px;color:#2a2a2a;padding:16px;text-align:center;">Aucun point — ajoutez-en un ci-dessous.</div></div>
+        <button class="btn btn-f" onclick="addEv()">[ + AJOUTER UN POINT ]</button>
+    </div>
+
+    <div class="btns">
+        <button class="btn btn-p" onclick="doGen()" style="flex:2">[ GÉNÉRER LE WIDGET ]</button>
+        <button class="btn" onclick="doPrev()" style="flex:1">[ PRÉVISUALISER ]</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-ghost" onclick="doClear()">[ EFFACER TOUT ]</button>
+    </div>
+    <div class="status" id="st"></div>
+
+    <div id="pv-wrap">
+        <div class="pv-bar">// APERÇU_EN_DIRECT</div>
+        <iframe id="pv-frame" frameborder="0" scrolling="no"></iframe>
+    </div>
+
+    <div id="out-wrap">
+        <div class="out-lbl">CODE HTML — COPIEZ ET COLLEZ SUR VOTRE SITE</div>
+        <textarea id="code-out" readonly spellcheck="false"></textarea>
+        <div class="btns" style="margin-top:10px;">
+            <button class="btn btn-p" onclick="doCopy()" style="flex:1">[ COPIER LE CODE ]</button>
+            <button class="btn" onclick="doDl()" style="flex:1">[ TÉLÉCHARGER .HTML ]</button>
+        </div>
+    </div>
+
+    <!-- SEO -->
+    <section class="seo" aria-label="Description de l'outil">
+        <h2>DESCRIPTION_MODULE</h2>
+        <p style="font-size:11px;color:#444;line-height:1.8;margin-bottom:20px;">
+            Cet outil vous permet de créer des frises chronologiques interactives, librement personnalisables et exportables en HTML autonome. Chaque point de la frise peut contenir une image, une légende, une description et un lien vers une vidéo YouTube, un article ou n'importe quelle page web. Le widget généré est entièrement standalone — aucune dépendance externe, aucune connexion serveur. Embarquable sur Blogger, WordPress, GitHub Pages, ou tout autre site web.
+        </p>
+
+        <h2>QUESTIONS_FRÉQUENTES</h2>
+
+        <div class="faq">
+            <h3>Comment créer une frise chronologique interactive ?</h3>
+            <p>Configurez le titre et les couleurs, puis ajoutez vos points en renseignant une date, une légende, une description et optionnellement une image et un lien URL. Cliquez sur "Générer le Widget" pour obtenir le code HTML à copier-coller.</p>
+        </div>
+        <div class="faq">
+            <h3>Mon travail est-il sauvegardé automatiquement ?</h3>
+            <p>Oui. Toutes vos données — titre, couleurs, points et images — sont automatiquement sauvegardées dans le stockage local de votre navigateur (localStorage). Vous pouvez fermer l'onglet et revenir plus tard : votre frise sera exactement là où vous l'avez laissée.</p>
+        </div>
+        <div class="faq">
+            <h3>Puis-je utiliser mes propres images ?</h3>
+            <p>Oui. Chaque point accepte une image uploadée depuis votre appareil. Elle est automatiquement redimensionnée et convertie en base64 directement dans votre navigateur — intégrée dans le widget sans hébergement externe.</p>
+        </div>
+        <div class="faq">
+            <h3>Le widget fonctionne-t-il sur Blogger ou WordPress ?</h3>
+            <p>Oui. Le widget généré est un bloc HTML/JS autonome que vous pouvez coller dans n'importe quel éditeur HTML — Blogger, WordPress, Ghost, Notion, GitHub Pages, etc. Aucun plugin requis.</p>
+        </div>
+        <div class="faq">
+            <h3>Peut-on lier chaque point à une vidéo YouTube ?</h3>
+            <p>Oui. Chaque point dispose d'un champ URL libre. En cliquant sur un point dans le widget final, l'utilisateur est redirigé vers la page de votre choix — vidéo YouTube, article de blog, épisode Wattpad, etc.</p>
+        </div>
+        <div class="faq">
+            <h3>C'est quoi BlackCrow OS ?</h3>
+            <p>BlackCrow OS est l'interface système fictive du <a href="https://vaisseau-monde.fr" target="_blank" rel="noopener">Vaisseau-Monde</a>, un projet de science-fiction immersif. Ces outils font partie des modules publics accessibles à tous. <a href="https://levaisseaumonde.github.io/BlackCrow/" target="_blank" rel="noopener">Voir tous les outils BlackCrow</a>.</p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="fsig">// SIGNAL TRANSMIS // QLVVP 🖤</div>
+        <div class="flinks">
+            <a href="https://vaisseau-monde.fr" target="_blank" rel="noopener">Blog</a>
+            <a href="https://youtube.com/@VaisseauMonde" target="_blank" rel="noopener">YouTube</a>
+            <a href="https://www.wattpad.com/story/407419657-le-vaisseau-monde" target="_blank" rel="noopener">Wattpad</a>
+            <a href="https://www.reddit.com/r/VaisseauMonde/" target="_blank" rel="noopener">Reddit</a>
+            <a href="https://levaisseaumonde.github.io/BlackCrow/" target="_blank" rel="noopener">BlackCrow OS</a>
+        </div>
+      
+    </footer>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  PERSISTENCE — localStorage auto-save/restore
+// ═══════════════════════════════════════════════════════
+const LS = 'bcow_tl_v3';
+let saveT = null;
+
+function autoSave() {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+        try {
+            localStorage.setItem(LS, JSON.stringify({
+                title: g('tl-title').value,
+                unit: g('tl-unit').value,
+                uc: g('tl-uc').value,
+                bg: g('c-bg-h').value,
+                ln: g('c-ln-h').value,
+                tx: g('c-tx-h').value,
+                cbg: g('c-cbg-h').value,
+                ctx: g('c-ctx-h').value,
+                cbr: g('c-cbr-h').value,
+                w: g('tl-w').value,
+                br: g('brand-vm').checked,
+                brBc: g('brand-bc').checked,
+                font: g('tl-font').value,
+                fsTitle: g('tl-fsize-title').value,
+                fsDate: g('tl-fsize-date').value,
+                fsLabel: g('tl-fsize-label').value,
+                fsDesc: g('tl-fsize-desc').value,
+                evs: evs, ec: ec
+            }));
+            const si = g('si');
+            si.textContent = '// SESSION_LOCALE : sauvegardé à ' + new Date().toLocaleTimeString('fr-FR');
+            si.classList.add('lit');
+            setTimeout(() => si.classList.remove('lit'), 2000);
+        } catch(e) {}
+    }, 500);
+}
+
+function autoLoad() {
+    try {
+        const d = JSON.parse(localStorage.getItem(LS));
+        if (!d) return;
+        if (d.title) g('tl-title').value = d.title;
+        if (d.unit !== undefined) { g('tl-unit').value = d.unit; g('ucf').style.display = d.unit===''?'block':'none'; }
+        if (d.uc) g('tl-uc').value = d.uc;
+        const sc = (hid, pid, v) => { if(v){g(hid).value=v; g(pid).value=v;} };
+        sc('c-bg-h','c-bg',d.bg); sc('c-ln-h','c-ln',d.ln); sc('c-tx-h','c-tx',d.tx);
+        sc('c-cbg-h','c-cbg',d.cbg); sc('c-ctx-h','c-ctx',d.ctx); sc('c-cbr-h','c-cbr',d.cbr);
+        if (d.w) g('tl-w').value = d.w;
+        if (d.br !== undefined) g('brand-vm').checked = d.br;
+        if (d.brBc !== undefined) g('brand-bc').checked = d.brBc;
+        if (d.font) g('tl-font').value = d.font;
+        if (d.fsTitle) g('tl-fsize-title').value = d.fsTitle;
+        if (d.fsDate)  g('tl-fsize-date').value  = d.fsDate;
+        if (d.fsLabel) g('tl-fsize-label').value = d.fsLabel;
+        if (d.fsDesc)  g('tl-fsize-desc').value  = d.fsDesc;
+        if (d.evs) { evs = d.evs; ec = d.ec || evs.length; }
+        g('si').textContent = '// SESSION_LOCALE : session restaurée ✓';
+    } catch(e) {}
+}
+
+function doClear() {
+    if (!confirm('Effacer toutes les données et recommencer à zéro ?')) return;
+    localStorage.removeItem(LS);
+    location.reload();
+}
+
+// watch all form inputs
+function watchAll() {
+    document.querySelectorAll('input,select,textarea').forEach(el => {
+        el.addEventListener('input', autoSave);
+        el.addEventListener('change', autoSave);
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function g(id) { return document.getElementById(id); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════════
+let evs = [], ec = 0;
+
+function addEv() {
+    evs.push({ id: ++ec, date:'', label:'', desc:'', url:'', img:null, imgName:'' });
+    renderEvs(); autoSave();
+}
+function delEv(id) {
+    evs = evs.filter(e => e.id !== id);
+    renderEvs(); autoSave();
+}
+function setField(id, k, v) {
+    const e = evs.find(e => e.id === id);
+    if (e) { e[k] = v; autoSave(); }
+}
+
+function renderEvs() {
+    const el = g('ev-list');
+    if (!evs.length) {
+        el.innerHTML = '<div style="font-size:11px;color:#2a2a2a;padding:16px;text-align:center;">Aucun point — ajoutez-en un ci-dessous.</div>';
+        return;
+    }
+    el.innerHTML = evs.map((ev, i) => `
+        <div class="ecard">
+            <div class="ecard-top">
+                <span class="enum">POINT_${String(i+1).padStart(2,'0')}</span>
+                <button class="btn btn-del" onclick="delEv(${ev.id})">[ × SUPPRIMER ]</button>
+            </div>
+            <div class="row2">
+                <div class="field">
+                    <label>DATE_POSITION</label>
+                    <input type="text" placeholder="ex: 2142, AN VII…" value="${esc(ev.date)}" oninput="setField(${ev.id},'date',this.value)">
+                </div>
+                <div class="field">
+                    <label>LÉGENDE</label>
+                    <input type="text" placeholder="Titre de l'événement" value="${esc(ev.label)}" oninput="setField(${ev.id},'label',this.value)">
+                </div>
+            </div>
+            <div class="field">
+                <label>DESCRIPTION</label>
+                <textarea placeholder="Quelques mots sur cet événement…" oninput="setField(${ev.id},'desc',this.value)">${esc(ev.desc)}</textarea>
+            </div>
+            <div class="field">
+                <label>URL_LIEN</label>
+                <input type="url" placeholder="https://youtube.com/watch?v=…" value="${esc(ev.url)}" oninput="setField(${ev.id},'url',this.value)">
+            </div>
+            <div class="field">
+                <label>IMAGE</label>
+                <div class="uz" onclick="g('fi-${ev.id}').click()">
+                    ${ev.imgName ? '[ '+esc(ev.imgName)+' ] — cliquer pour changer' : '[ UPLOADER UNE IMAGE ]'}
+                    <input type="file" id="fi-${ev.id}" accept="image/*" onchange="handleImg(${ev.id},this)">
+                </div>
+                ${ev.img ? `<img src="${ev.img}" class="ithumb on" alt="${esc(ev.label)}">` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function handleImg(id, inp) {
+    const file = inp.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+            const MAX = 200;
+            let w = img.width, h = img.height;
+            if (w > h) { h = Math.round(h*MAX/w); w = MAX; } else { w = Math.round(w*MAX/h); h = MAX; }
+            const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(img, 0, 0, w, h);
+            const b64 = cv.toDataURL('image/jpeg', 0.82);
+            const ev = evs.find(ev => ev.id === id);
+            if (ev) { ev.img = b64; ev.imgName = file.name; }
+            renderEvs(); autoSave();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════════
+//  COLOR SYNC
+// ═══════════════════════════════════════════════════════
+function bindC(pid, hid) {
+    const p = g(pid), h = g(hid);
+    p.addEventListener('input', () => { h.value = p.value; autoSave(); });
+    h.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(h.value)) { p.value = h.value; autoSave(); } });
+}
+bindC('c-bg','c-bg-h'); bindC('c-ln','c-ln-h'); bindC('c-tx','c-tx-h');
+bindC('c-cbg','c-cbg-h'); bindC('c-ctx','c-ctx-h'); bindC('c-cbr','c-cbr-h');
+
+g('tl-unit').addEventListener('change', function() {
+    g('ucf').style.display = this.value===''?'block':'none'; autoSave();
+});
+
+// ═══════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════
+function getCfg() {
+    const us = g('tl-unit').value;
+    return {
+        title: g('tl-title').value || 'Frise Chronologique',
+        unit: us==='' ? (g('tl-uc').value||'') : us,
+        bg:   g('c-bg-h').value  || '#0d0d0d',
+        ln:   g('c-ln-h').value  || '#e05555',
+        tx:   g('c-tx-h').value  || '#aaaaaa',
+        cbg:  g('c-cbg-h').value || '#1a1a1a',
+        ctx:  g('c-ctx-h').value || '#cccccc',
+        cbr:  g('c-cbr-h').value || '#e05555',
+        w:    g('tl-w').value    || '100%',
+        br:   g('brand-vm').checked,
+        brBc: g('brand-bc').checked,
+        font:    g('tl-font').value        || "'Courier New',Courier,monospace",
+        fsTitle: parseInt(g('tl-fsize-title').value) || 13,
+        fsDate:  parseInt(g('tl-fsize-date').value)  || 9,
+        fsLabel: parseInt(g('tl-fsize-label').value) || 10,
+        fsDesc:  parseInt(g('tl-fsize-desc').value)  || 10,
+        evs:  evs.filter(e => e.date || e.label)
+    };
+}
+
+// ═══════════════════════════════════════════════════════
+//  WIDGET BUILDER
+// ═══════════════════════════════════════════════════════
+function buildW(c) {
+    const ej = JSON.stringify(c.evs.map(e => ({date:e.date,label:e.label,desc:e.desc,url:e.url,img:e.img||null})));
+    const brandLinks = [
+        c.br   ? `<a href="https://www.vaisseau-monde.fr" target="_blank" rel="noopener">vaisseau-monde.fr</a>` : '',
+        c.brBc ? `<a href="https://levaisseaumonde.github.io/BlackCrow/" target="_blank" rel="noopener">BlackCrow OS</a>` : ''
+    ].filter(Boolean).join('<span class="bc-brand-sep"> // </span>');
+    const brand = brandLinks ? `<div class="bc-brand">${brandLinks}</div>` : '';
+
+    // KEY FIX: floating card lives at root level (outside scroll),
+    // positioned by JS using getBoundingClientRect() → no overflow:hidden clipping.
+    // Card appears ABOVE the image dot; z-index:9999 ensures it's over the title too.
+
+    return `<!-- WIDGET FRISE — BLACKCROW OS — vaisseau-monde.fr -->
+<div class="bctlr" style="width:${c.w};max-width:100%;background:${c.bg};font-family:${c.font};padding:28px 20px 18px;box-sizing:border-box;position:relative;">
+<style>
+.bctlr *{box-sizing:border-box;}
+.bc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:10px;border-bottom:1px solid ${c.ln}55;position:relative;z-index:1;}
+.bc-ttl{font-size:${c.fsTitle}px;color:${c.tx};letter-spacing:1px;}
+.bc-dl-btn{background:none;border:1px solid ${c.ln}44;color:${c.ln}88;font-family:${c.font};font-size:9px;padding:4px 9px;cursor:pointer;letter-spacing:1px;border-radius:3px;transition:all 0.2s;flex-shrink:0;}
+.bc-dl-btn:hover{border-color:${c.ln};color:${c.ln};}
+.bc-dl-btn.loading{opacity:0.5;cursor:wait;}
+.bc-scr{overflow-x:auto;overflow-y:visible;padding-bottom:4px;scrollbar-width:thin;scrollbar-color:${c.ln}44 transparent;}
+.bc-scr::-webkit-scrollbar{height:3px;}
+.bc-scr::-webkit-scrollbar-thumb{background:${c.ln}44;border-radius:2px;}
+.bc-inn{position:relative;padding:0 28px;}
+.bc-ln{height:2px;background:linear-gradient(90deg,${c.ln}22,${c.ln},${c.ln});position:relative;margin-top:148px;margin-bottom:108px;}
+.bc-ln::after{content:'';position:absolute;right:-8px;top:-5px;border-left:14px solid ${c.ln};border-top:6px solid transparent;border-bottom:6px solid transparent;}
+.bc-pts{position:absolute;top:50%;left:0;width:100%;display:flex;justify-content:space-around;transform:translateY(-50%);padding:0 28px;}
+.bc-pt{position:relative;display:flex;flex-direction:column;align-items:center;cursor:default;padding:0 6px;}
+.bc-pt.cl{cursor:pointer;}
+.bc-pt-t{position:absolute;bottom:calc(100% + 18px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;width:108px;}
+.bc-img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid ${c.ln}66;display:block;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;}
+.bc-pt:hover .bc-img{border-color:${c.ln};transform:scale(1.1);box-shadow:0 4px 24px ${c.ln}66;}
+.bc-dt{font-size:${c.fsDate}px;color:${c.ln};letter-spacing:1px;white-space:nowrap;text-align:center;}
+.bc-dot{width:14px;height:14px;border-radius:50%;background:${c.bg};border:2px solid ${c.ln};transition:all 0.2s;position:relative;z-index:2;flex-shrink:0;}
+.bc-pt:hover .bc-dot{background:${c.ln};transform:scale(1.4);}
+.bc-pt-b{position:absolute;top:calc(100% + 18px);left:50%;transform:translateX(-50%);width:108px;text-align:center;}
+.bc-lb{font-size:${c.fsLabel}px;color:${c.tx};line-height:1.4;}
+/* FLOATING CARD — expands left or right from the thumbnail, zoom-origin effect */
+.bc-fc{
+  position:absolute;
+  background:${c.cbg};
+  border:1px solid ${c.cbr};
+  border-radius:10px;
+  width:260px;
+  z-index:9999;
+  opacity:0;pointer-events:none;
+  box-shadow:0 16px 48px rgba(0,0,0,0.9),0 0 0 1px ${c.cbr}22;
+  /* transform-origin set by JS to the thumb corner — scale from there */
+  transform:scale(0.72);
+  transition:opacity 0.2s,transform 0.2s cubic-bezier(0.34,1.3,0.64,1);
+  display:flex;flex-direction:row;overflow:hidden;
+}
+.bc-fc.vis{opacity:1;pointer-events:auto;transform:scale(1);}
+.bc-fc.vis.linkable:hover{border-color:${c.cbr};box-shadow:0 20px 56px rgba(0,0,0,0.95),0 0 0 1px ${c.cbr}66;}
+/* left side: big image */
+.bc-fc-img-wrap{width:120px;flex-shrink:0;position:relative;overflow:hidden;}
+.bc-fc-img{width:100%;height:100%;object-fit:cover;display:block;min-height:140px;}
+.bc-fc-img-none{width:120px;flex-shrink:0;background:${c.cbr}11;min-height:140px;}
+/* right side: text */
+.bc-fc-body{flex:1;padding:12px 12px 12px 10px;display:flex;flex-direction:column;justify-content:space-between;min-height:140px;}
+.bc-fc-date{font-size:9px;color:${c.ln};letter-spacing:1px;margin-bottom:5px;}
+.bc-fc-title{font-size:12px;color:${c.ctx};line-height:1.4;margin-bottom:6px;flex:1;}
+.bc-fc-desc{font-size:${c.fsDesc}px;color:${c.ctx}88;line-height:1.55;margin-bottom:8px;}
+.bc-fc-cta{font-size:9px;color:${c.ln};letter-spacing:1px;border:1px solid ${c.cbr}77;padding:4px 8px;display:inline-block;border-radius:4px;cursor:pointer;transition:background 0.15s;align-self:flex-start;}
+.bc-fc-cta:hover{background:${c.ln}22;}
+/* connector notch — left or right depending on direction, set via .from-left/.from-right */
+.bc-fc.from-right::before{content:'';position:absolute;left:-7px;top:50%;transform:translateY(-50%) rotate(45deg);width:12px;height:12px;background:${c.cbg};border-left:1px solid ${c.cbr};border-bottom:1px solid ${c.cbr};}
+.bc-fc.from-left::before{content:'';position:absolute;right:-7px;top:50%;transform:translateY(-50%) rotate(45deg);width:12px;height:12px;background:${c.cbg};border-right:1px solid ${c.cbr};border-top:1px solid ${c.cbr};}
+.bc-brand{text-align:center;font-size:11px;color:${c.ln}66;padding-top:12px;letter-spacing:2px;}
+.bc-brand a{color:inherit;text-decoration:none;transition:color 0.2s;}
+.bc-brand a:hover{color:${c.ln}cc;}
+.bc-brand-sep{color:${c.ln}33;}
+.bc-empty{font-size:11px;color:${c.tx}44;text-align:center;padding:20px;}
+</style>
+<div class="bc-hd"><div class="bc-ttl">${c.title}</div><button class="bc-dl-btn" id="bc-dl-btn" title="Télécharger la frise en image">⬇ IMAGE</button></div>
+<div class="bc-fc" id="bcfc"></div>
+<div class="bc-scr"><div class="bc-inn" id="bcinn"></div></div>
+${brand}
+</div>
+<script>
+(function(){
+var ev=${ej},unit="${c.unit}";
+if(!ev||!ev.length){document.getElementById('bcinn').innerHTML='<div class="bc-empty">Aucun événement.</div>';return;}
+var SEP=140,W=Math.max(ev.length*SEP+80,420);
+var inn=document.getElementById('bcinn');
+inn.style.width=W+'px';inn.style.minWidth=W+'px';
+var fc=document.getElementById('bcfc');
+var root=fc.closest('.bctlr');
+var hideT=null;
+
+// ── Download as image ──
+document.getElementById('bc-dl-btn').addEventListener('click',function(){
+  var btn=this;
+  btn.classList.add('loading');btn.textContent='…';
+  // Load html2canvas on demand
+  if(!window.html2canvas){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=function(){doCapture(btn);};
+    s.onerror=function(){btn.classList.remove('loading');btn.textContent='⬇ IMAGE';alert('html2canvas non disponible.');};
+    document.head.appendChild(s);
+  } else { doCapture(btn); }
+});
+function doCapture(btn){
+  // Temporarily hide the floating card and the button itself
+  fc.style.display='none';
+  btn.style.display='none';
+  html2canvas(root,{
+    backgroundColor:null,
+    scale:2,
+    useCORS:true,
+    logging:false
+  }).then(function(canvas){
+    fc.style.display='';
+    btn.style.display='';
+    btn.classList.remove('loading');btn.textContent='⬇ IMAGE';
+    var a=document.createElement('a');
+    a.download='frise-'+Date.now()+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }).catch(function(){
+    fc.style.display='';btn.style.display='';
+    btn.classList.remove('loading');btn.textContent='⬇ IMAGE';
+  });
+}
+
+function getDomain(url){
+  try{var h=new URL(url).hostname.replace(/^www\./,'');return h;}catch(x){return url;}
+}
+
+function buildCard(e){
+  fc.innerHTML='';
+  // Make whole card a link if url exists
+  if(e.url){
+    fc.style.cursor='pointer';
+    fc.onclick=function(){window.open(e.url,'_blank');};
+    fc.classList.add('linkable');
+  } else {
+    fc.style.cursor='default';
+    fc.onclick=null;
+    fc.classList.remove('linkable');
+  }
+  // Image pane (left side)
+  if(e.img){
+    var iw=document.createElement('div');iw.className='bc-fc-img-wrap';
+    var ci=document.createElement('img');ci.src=e.img;ci.className='bc-fc-img';ci.alt=e.label||'';
+    iw.appendChild(ci);fc.appendChild(iw);
+  } else {
+    var iph=document.createElement('div');iph.className='bc-fc-img-none';fc.appendChild(iph);
+  }
+  // Text pane (right side)
+  var bd=document.createElement('div');bd.className='bc-fc-body';
+  var dd=document.createElement('div');dd.className='bc-fc-date';dd.textContent=e.date+(e.date&&unit?' '+unit:'');bd.appendChild(dd);
+  var tl=document.createElement('div');tl.className='bc-fc-title';tl.textContent=e.label||'';bd.appendChild(tl);
+  if(e.desc){var ds=document.createElement('div');ds.className='bc-fc-desc';ds.textContent=e.desc;bd.appendChild(ds);}
+  if(e.url){var cta=document.createElement('div');cta.className='bc-fc-cta';cta.textContent='> '+getDomain(e.url);bd.appendChild(cta);}
+  fc.appendChild(bd);
+}
+
+function posCard(ptEl){
+  var ptR=ptEl.getBoundingClientRect(),rR=root.getBoundingClientRect();
+  var cW=260,cH=fc.offsetHeight||150;
+  // thumb center relative to root
+  var thumbEl=ptEl.querySelector('.bc-img');
+  var thumbR=thumbEl?thumbEl.getBoundingClientRect():ptR;
+  var thumbCX=thumbR.left-rR.left+thumbR.width/2;
+  var thumbCY=thumbR.top-rR.top+thumbR.height/2;
+  var top=thumbCY-cH/2;
+  // clamp vertically inside root
+  top=Math.max(4,Math.min(top,rR.height-cH-4));
+
+  // decide left or right: prefer right, flip left if not enough room
+  var spaceRight=rR.width-(thumbR.left-rR.left+thumbR.width);
+  var goRight=spaceRight>=cW+12;
+  fc.classList.remove('from-left','from-right');
+  var left;
+  if(goRight){
+    left=thumbR.left-rR.left+thumbR.width+12;
+    fc.classList.add('from-right');
+    // transform-origin: top-left corner of card (= thumb side)
+    fc.style.transformOrigin='left center';
+  } else {
+    left=thumbR.left-rR.left-cW-12;
+    fc.classList.add('from-left');
+    fc.style.transformOrigin='right center';
+  }
+  left=Math.max(4,Math.min(left,rR.width-cW-4));
+  fc.style.left=left+'px';
+  fc.style.top=top+'px';
+}
+
+var ln=document.createElement('div');ln.className='bc-ln';
+var pts=document.createElement('div');pts.className='bc-pts';
+
+ev.forEach(function(e){
+  var pt=document.createElement('div');
+  pt.className='bc-pt'+(e.url?' cl':'');
+
+  var top=document.createElement('div');top.className='bc-pt-t';
+  if(e.img){var img=document.createElement('img');img.src=e.img;img.className='bc-img';img.alt=e.label||'';top.appendChild(img);}
+  var dt=document.createElement('div');dt.className='bc-dt';dt.textContent=e.date+(e.date&&unit?' '+unit:'');top.appendChild(dt);
+  pt.appendChild(top);
+
+  var dot=document.createElement('div');dot.className='bc-dot';pt.appendChild(dot);
+
+  var bot=document.createElement('div');bot.className='bc-pt-b';
+  var lb=document.createElement('div');lb.className='bc-lb';lb.textContent=e.label||'';bot.appendChild(lb);
+  pt.appendChild(bot);
+
+  pt.addEventListener('mouseenter',function(){
+    clearTimeout(hideT);
+    buildCard(e);
+    fc.classList.add('vis');
+    requestAnimationFrame(function(){posCard(pt);});
+  });
+  pt.addEventListener('mouseleave',function(){
+    hideT=setTimeout(function(){fc.classList.remove('vis');},100);
+  });
+  fc.addEventListener('mouseenter',function(){clearTimeout(hideT);});
+  fc.addEventListener('mouseleave',function(){fc.classList.remove('vis');});
+
+  if(e.url){pt.addEventListener('click',function(){window.open(e.url,'_blank');});}
+  pts.appendChild(pt);
+});
+
+ln.appendChild(pts);
+inn.appendChild(ln);
+})();
+<\/script>
+<!-- FIN WIDGET BLACKCROW OS — vaisseau-monde.fr -->`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════
+function msg(txt, type) {
+    const s = g('st'); s.textContent = txt; s.className = 'status on '+(type||'');
+    setTimeout(() => s.classList.remove('on'), 4000);
+}
+
+function doGen() {
+    const c = getCfg();
+    if (!c.evs.length) { msg('Ajoutez au moins un point à la frise.', 'err'); return; }
+    g('code-out').value = buildW(c);
+    g('out-wrap').classList.add('on');
+    msg('Widget généré.', 'ok');
+    g('out-wrap').scrollIntoView({ behavior:'smooth' });
+}
+
+function doPrev() {
+    const c = getCfg();
+    if (!c.evs.length) { msg('Ajoutez au moins un point pour prévisualiser.', 'err'); return; }
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:${c.bg};padding:24px;}</style></head><body>${buildW(c)}</body></html>`;
+    const f = g('pv-frame'); f.srcdoc = html; f.style.height = '440px';
+    g('pv-wrap').classList.add('on');
+    g('pv-wrap').scrollIntoView({ behavior:'smooth' });
+}
+
+function doCopy() {
+    const ta = g('code-out'); ta.select();
+    try { document.execCommand('copy'); msg('Code copié dans le presse-papier.', 'ok'); }
+    catch(e) { msg('Sélectionnez et copiez manuellement.', 'err'); }
+}
+
+function doDl() {
+    const c = getCfg(), w = buildW(c);
+    const full = `<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${c.title} — BlackCrow OS</title>\n<meta name="description" content="${c.title} — Frise générée par BlackCrow OS / vaisseau-monde.fr">\n<style>body{margin:0;background:${c.bg};padding:24px;}</style>\n</head>\n<body>\n${w}\n<!-- vaisseau-monde.fr | levaisseaumonde.github.io/BlackCrow/ -->\n</body>\n</html>`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([full],{type:'text/html'}));
+    a.download = 'frise-blackcrow-' + Date.now() + '.html'; a.click();
+    msg('Fichier téléchargé.', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+autoLoad();
+renderEvs();
+watchAll();
+</script>
+</body>
+</html>
